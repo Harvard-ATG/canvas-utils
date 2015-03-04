@@ -1,0 +1,4 @@
+/pageviews/oauthtoken.txt
+/pageviews/*.csv
+/pageviews/*.json
+/pageviews/*.log
