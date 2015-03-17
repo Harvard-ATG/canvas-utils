@@ -20,7 +20,16 @@ $ cat pageviews_1693_2015-01-26-2015-03-12.json
 
 **Output:**
 
-The output of this script is a CSV and JSON file with the aggregated page views for each URL that enrolled users in the course have visited. The CSV file contains four columns: ```URL, Page Views, Start Time, End Time```. The JSON file is an array of page view objects:
+The output of this script is a CSV and JSON file with the aggregated page views for each URL that enrolled users in the course have visited. 
+
+CSV file format: 
+
+```plain
+URL,Page Views,Start Time,End Time
+https://canvas.harvard.edu/,1,2015-01-26,2015-03-16
+```
+
+JSON file format:
 
 ```javascript
 [
