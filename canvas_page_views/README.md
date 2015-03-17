@@ -42,3 +42,10 @@ JSON file format:
 ]
 ```
 
+**Canvas Resources:**
+
+1. Basic Canvas API Documentation: https://canvas.instructure.com/doc/api/index.html
+2. Pagination: https://canvas.instructure.com/doc/api/file.pagination.html
+2. Getting enrollments: https://canvas.instructure.com/doc/api/enrollments.html
+3. List a user's page views: https://canvas.instructure.com/doc/api/users.html#method.page_views.index
+4. Pages API: https://canvas.instructure.com/doc/api/pages.html
