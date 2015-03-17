@@ -1,4 +1,4 @@
-/pageviews/oauthtoken.txt
-/pageviews/*.csv
-/pageviews/*.json
-/pageviews/*.log
+/canvas_page_views/oauthtoken.txt
+/canvas_page_views/*.csv
+/canvas_page_views/*.json
+/canvas_page_views/*.log
