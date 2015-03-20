@@ -226,31 +226,32 @@ def api_fetch(url, **kwargs):
     response_data = []
     result = None
     has_next = True
+    page_num = 0
 
+    logger.info("\tRequest Initiated [url=%s]" % request_url)
     while has_next:
+        page_num += 1
         r = requests.get(request_url, headers=headers, params=params)
-        logger.info("=> Request url=%s Response status=%s" % (r.url, r.status_code))
+        logger.info("\tRequest In Progress [page=%d] [request_url=%s] [response_code=%s]" % (page_num, r.url, r.status_code))
         logger.debug("Response headers=%s" % r.headers)
 
         if r.status_code == 200:
-            logger.debug("Response data=%s" % r.text)
+            logger.debug("\tResponse data=%s" % r.text)
             result = json.loads(r.text)
-            logger.info("Response data type=%s has length=%s" % (type(result), len(result))) 
             response_data.append(result)
         else:
-            logger.debug("No response data for url=%s because status_code=%s" % (url, r.status_code))
+            logger.debug("\tNo response data")
 
         links = extract_header_links(r.headers.get('link'))
         has_next = 'next' in links
         if has_next:
-            logger.info("Following pagination and fetching next...")
             request_url = links['next']
             params = None # cleared params because link url is opaque
 
     if action is not None and hasattr(action, '__call__'):
         response_data = action(response_data)
 
-    logger.info("Retrieved %s pages with %s objects" % (len(response_data), sum([isinstance(p, list) and len(p) or 1 for p in response_data])))
+    logger.info("\tRequest Completed [pages=%d] [total_size=%d]" % (page_num, sum([isinstance(p, list) and len(p) or 1 for p in response_data])))
 
     return response_data
 
@@ -343,21 +344,26 @@ def main():
     '''Main script.'''
     load_settings()
     load_cache()
+
+    logger.info("=> Fetching course data")
     course = fetch_course()
-    enrollment = fetch_course_enrollment()
     course_id = cid()
 
     # If a user has multiple enrollments in a context (e.g. as a teacher and a
     # student or in multiple course sections), each enrollment will be listed
     # separately. Therefore, get a uinque 
+    logger.info("=> Fetching enrolled users for course %s" % course_id)
+    enrollment = fetch_course_enrollment()
     user_set = set([e['user_id'] for e in enrollment if e['user_id'] is not None])
-    logger.info("Retrieved %s enrolled users for course %s" % (len(enrollment), course_id))
-    logger.debug("Enrolled users=%s" % sorted(list(user_set)))
+    num_users = len(user_set)
+    logger.info("=> Retrieved %d enrolled users for course %s" % (num_users, course_id))
+    logger.debug("=> Enrolled users=%s" % sorted(list(user_set)))
 
     # Get each user's page views for the designated date range
     page_views_by_user = {}
     num_page_view_objects = 0
-    for user_id in user_set:
+    for index, user_id in enumerate(user_set):
+        logger.info("=> Fetching %d of %d user page views [user_id=%s]" % (index+1, num_users, user_id))
         result = fetch_user_page_views(user_id, SETTINGS['start_time'], SETTINGS['end_time'])
         if result is None:
             result = []
@@ -365,11 +371,12 @@ def main():
             num_page_view_objects += len(result)
         page_views_by_user[user_id] = result
 
-    logger.info("Retrieved %s page view objects for enrolled users" % num_page_view_objects)
-    logger.debug("Page views by user: %s" % jsonpp(page_views_by_user))
+    logger.info("=> Fetched %d of %d user page views with %d total objects" % (index+1, num_users, num_page_view_objects))
+    logger.debug("=> Page views by user=%s" % jsonpp(page_views_by_user))
 
     # Get the total URL page views across the set of users for the course URL namespace
     page_views_by_url = Counter()
+    logger.info("=> Counting total page views across users")
     for user_id, page_views in page_views_by_user.iteritems():
         for page_view in page_views:
             url = page_view['url']
@@ -377,18 +384,19 @@ def main():
                 count = page_views_by_url.setdefault(url, 0)
                 page_views_by_url[url] = count + 1
 
-    logger.info("Finished aggregating page views")
-    logger.info("Top 3 page views: %s" % page_views_by_url.most_common(3))
-    logger.debug("Page views by URL: %s" % jsonpp(page_views_by_url))
+    logger.info("=> Finished counting page views")
+    #logger.info("Top 3 page views: %s" % page_views_by_url.most_common(3))
+    logger.debug("=> Page views by URL: %s" % jsonpp(page_views_by_url))
 
     # Save the data
+    logger.info("=> Saving data to files")
     save_data(page_views_by_url, 'csv')
     save_data(page_views_by_url, 'json')
 
     # Save the cache
     save_cache()
 
-    logger.info("Done.")
+    logger.info("=> Done.")
 
     sys.exit()
 
