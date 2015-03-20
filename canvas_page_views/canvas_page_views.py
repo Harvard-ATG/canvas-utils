@@ -351,7 +351,7 @@ def main():
 
     # If a user has multiple enrollments in a context (e.g. as a teacher and a
     # student or in multiple course sections), each enrollment will be listed
-    # separately. Therefore, get a uinque 
+    # separately, so we need to get the set of unique users from the enrollment list.
     logger.info("=> Fetching enrolled users for course %s" % course_id)
     enrollment = fetch_course_enrollment()
     user_set = set([e['user_id'] for e in enrollment if e['user_id'] is not None])
