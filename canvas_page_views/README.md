@@ -2,6 +2,13 @@
 
 This script can be used to generate the total number of page views for a course over a specific time range. This tool exists because Canvas doesn't provide this functionality out of the box. It only provides an interface to view an individual user's page views, so this tool fills the gap until Canvas adds that functionality. 
 
+**Requirements:**
+This script requires the "Requests" library. In order to install this library, use pip:
+
+```sh
+$ pip install requests
+```
+
 **Usage:**
 
 ```sh
