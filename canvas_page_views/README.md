@@ -9,6 +9,14 @@ This script requires the "Requests" library. In order to install this library, u
 $ pip install requests
 ```
 
+In order to use this library, it is highly recommended that you upgrade to at least Python 2.7.9. Otherwise, you might see the following error/warning when you run the script:
+
+```
+InsecurePlatformWarning: A true SSLContext object is not available. This prevents urllib3 from configuring SSL appropriately and may cause certain SSL connections to fail. For more information, see https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning.
+```
+
+Check the link in the error for more information.
+
 **Usage:**
 
 ```sh
