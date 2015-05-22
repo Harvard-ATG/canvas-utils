@@ -304,7 +304,12 @@ def reduce_enrollment(data):
 
 def reduce_user_page_views(data):
     '''Returns a user page veiws list (not paginated).'''
-    return reduce_paginated_data(data, ['id', 'url', 'created_at'])
+    filtered_data = []
+    whitelist = ['id', 'url', 'created_at', 'context_type']
+    for d in reduce_paginated_data(data, whitelist):
+        if d['context_type'] == 'Course':
+            filtered_data.append(d)
+    return filtered_data
 
 def save_data(items):
     '''
@@ -363,9 +368,9 @@ def save_data(items):
 
 def is_course_url(course_id, url):
     '''Returns true if the URL is a valid course URL for the course ID.'''
-    course_url = 'https://canvas.harvard.edu/courses/{course_id}'.format(course_id=cid())
-    url = url.lower()
-    return course_url == url or url.startswith(course_url + "/")
+    course_url_pattern = r'^https?://canvas.harvard.edu/(?:api/v1/)?courses/{course_id}'.format(course_id=cid())
+    result = re.search(course_url_pattern, url.lower())
+    return result is not None
 
 def main():
     '''Main script.'''
