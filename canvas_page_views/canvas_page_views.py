@@ -44,8 +44,8 @@ SETTINGS = {
     "end_time": date.today().isoformat(),
 
     # File names and formats for saving the results
-    "csv_file_name": "pageviews_{course_id}_{start_time}-{end_time}.csv",
-    "json_file_name": "pageviews_{course_id}_{start_time}-{end_time}.json",
+    "csv_file_name": "{label}_{course_id}_{start_time}-{end_time}.csv",
+    "json_file_name": "{label}_{course_id}_{start_time}-{end_time}.json",
 
     # File to save cache
     "cache_file": "cache-{hash}.json",
@@ -304,41 +304,73 @@ def reduce_enrollment(data):
 
 def reduce_user_page_views(data):
     '''Returns a user page veiws list (not paginated).'''
-    return reduce_paginated_data(data, ['id', 'url'])
+    filtered_data = []
+    whitelist = ['id', 'url', 'created_at', 'context_type']
+    for d in reduce_paginated_data(data, whitelist):
+        if d['context_type'] == 'Course':
+            filtered_data.append(d)
+    return filtered_data
 
-def save_data(page_views_by_url, fmt="csv"):
-    '''Saves data to a CSV or JSON file (defaults to CSV).'''
+def save_data(items):
+    '''
+    Saves data to a CSV or JSON file (defaults to CSV).
+    Input: 
+        - items: an array of data dictionaries
+        [{
+            "format": "csv",
+            "name": "total-pageviews",
+            "labels": ["Url", "Total Page Views"],
+            "items": [
+                ["http://www.course.url/", 123], 
+                ["http://www.course.another.url/", 456]
+            ]
+        }]
+    Output: None
+    '''
     start_time = SETTINGS["start_time"]
     end_time = SETTINGS["end_time"]
-    if fmt == "csv":
-        file_name = SETTINGS["csv_file_name"].format(**SETTINGS)
-        with open(file_name, 'w') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(["URL", "Page Views", "Start Time", "End Time"])
-            for url, count in page_views_by_url.iteritems():
-                writer.writerow([url, count, start_time, end_time])
-    elif fmt == "json":
-        file_name = SETTINGS["json_file_name"].format(**SETTINGS)
-        with open(file_name, 'w') as jsonfile:
-            jsondata = [];
-            for url, count in page_views_by_url.iteritems():
-                jsondata.append({
-                    "url":url, 
-                    "pageviews": count, 
-                    "start_time": start_time, 
-                    "end_time": end_time
-                })
-            jsonfile.write(jsonpp(jsondata))
-    else:
-        raise "Data format not supported: %s" % fmt
+    course_id = SETTINGS["course_id"]
+    for data in items:
+        if not ('format' in data):
+            raise Exception("Missing required 'format' key in data dict")
+        if data['format'] == "csv":
+            file_name = SETTINGS["csv_file_name"].format(label=data['name'], **SETTINGS)
+            header_row = []
+            header_row.extend(data['labels'])
+            header_row.extend(["Report Start Time", "Report End Time", "Report Course ID"])
+            with open(file_name, 'w') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(header_row) 
+                for row in data['items']:
+                    csv_row = []
+                    csv_row.extend(row)
+                    csv_row.extend([start_time, end_time, course_id])
+                    writer.writerow(csv_row)
+        elif data['format'] == "json":
+            file_name = SETTINGS["json_file_name"].format(label=data['name'], **SETTINGS)
+            with open(file_name, 'w') as json_file:
+                json_data = {
+                    "start_time": start_time,
+                    "end_time": end_time, 
+                    "course_id": course_id,
+                    "data": []
+                }
+                for row in data['items']:
+                    json_row = {}
+                    for idx, value in enumerate(row):
+                        json_row[data['labels'][idx]] = value
+                    json_data['data'].append(json_row)
+                json_file.write(jsonpp(json_data))
+        else:
+            raise "Data format not supported: %s" % data['format']
 
-    logger.info("Saving data as %s to file %s..." % (fmt, file_name))
+        logger.info("Saving data as %s to file %s..." % (data['format'], file_name))
 
 def is_course_url(course_id, url):
     '''Returns true if the URL is a valid course URL for the course ID.'''
-    course_url = 'https://canvas.harvard.edu/courses/{course_id}'.format(course_id=cid())
-    url = url.lower()
-    return course_url == url or url.startswith(course_url + "/")
+    course_url_pattern = r'^https?://canvas.harvard.edu/(?:api/v1/)?courses/{course_id}'.format(course_id=cid())
+    result = re.search(course_url_pattern, url.lower())
+    return result is not None
 
 def main():
     '''Main script.'''
@@ -374,27 +406,79 @@ def main():
     logger.info("=> Fetched %d of %d user page views with %d total objects" % (index+1, num_users, num_page_view_objects))
     logger.debug("=> Page views by user=%s" % jsonpp(page_views_by_user))
 
-    # Get the total URL page views across the set of users for the course URL namespace
-    page_views_by_url = Counter()
+    # Save the cache as early as possible (after all the data has been fetched0
+    save_cache()
+
+    # Now process the data and count page views across the Course URL namespace
+    total_page_views_by_url = Counter()
+    total_page_views_by_user = {}
     logger.info("=> Counting total page views across users")
     for user_id, page_views in page_views_by_user.iteritems():
+        if not (user_id in total_page_views_by_user):
+            total_page_views_by_user[user_id] = Counter()
         for page_view in page_views:
             url = page_view['url']
             if is_course_url(course_id, url):
-                count = page_views_by_url.setdefault(url, 0)
-                page_views_by_url[url] = count + 1
+                page_count = total_page_views_by_url.setdefault(url, 0)
+                user_page_count = total_page_views_by_user[user_id].setdefault(url, 0)
+                total_page_views_by_url[url] = page_count + 1
+                total_page_views_by_user[user_id][url] = user_page_count + 1
 
     logger.info("=> Finished counting page views")
-    #logger.info("Top 3 page views: %s" % page_views_by_url.most_common(3))
-    logger.debug("=> Page views by URL: %s" % jsonpp(page_views_by_url))
+    logger.debug("=> Page views by URL: %s" % jsonpp(total_page_views_by_url))
+
+    # Transform the data to save in different output formats
+    logger.info("=> Preparing data for saving")
+    store_total_page_views_by_url = []
+    for url, count in total_page_views_by_url.iteritems():
+        store_total_page_views_by_url.append([url,count])
+
+    store_total_page_views_by_user = []
+    for user_id, page_views in total_page_views_by_user.iteritems():
+        for url, count in page_views.iteritems():
+            store_total_page_views_by_user.append([user_id, url, count])
+
+    store_page_views_by_user = []
+    for user_id, page_views in page_views_by_user.iteritems():
+        for page_view in page_views:
+            url = page_view['url']
+            created_at = page_view['created_at']
+            if is_course_url(course_id, url):
+                store_page_views_by_user.append([user_id, url, created_at])
 
     # Save the data
     logger.info("=> Saving data to files")
-    save_data(page_views_by_url, 'csv')
-    save_data(page_views_by_url, 'json')
-
-    # Save the cache
-    save_cache()
+    save_data([{
+        "format": "csv",
+        "name": "total-pageviews", 
+        "labels":  ["Course URL", "Total Views"], 
+        "items": store_total_page_views_by_url
+    },{ 
+        "format": "json",
+        "name": "total-pageviews", 
+        "labels":  ["course_url", "total_views"],
+        "items": store_total_page_views_by_url
+    },{
+        "format": "csv",
+        "name": "total-user-pageviews", 
+        "labels":  ["User ID", "Course URL", "Total Views"], 
+        "items": store_total_page_views_by_user
+    },{
+        "format": "json",
+        "name": "total-user-pageviews", 
+        "labels":  ["user_id", "course_url", "total_views"],  
+        "items": store_total_page_views_by_user
+    },{
+        "format": "csv",
+        "name": "user-pageviews", 
+        "labels":  ["User ID", "Course URL", "Access Date"], 
+        "items": store_page_views_by_user
+    },{
+        "format": "json",
+        "name": "user-pageviews", 
+        "labels":  ["user_id", "course_url", "access_date"],  
+        "items": store_page_views_by_user
+    }])
 
     logger.info("=> Done.")
 

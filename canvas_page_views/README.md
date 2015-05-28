@@ -35,27 +35,23 @@ $ cat pageviews_1693_2015-01-26-2015-03-12.json
 
 **Output:**
 
-The output of this script is a CSV and JSON file with the aggregated page views for each URL that enrolled users in the course have visited. 
+The script generates 3 reports with  page view results, and each report is available in CSV and JSON. The three reports are:
 
-CSV file format: 
+1. Total page views (URL, Count).
+2. Total page views by user (User, URL, Count).
+3. User page view records (User, URL, Request Date).
 
-```plain
-URL,Page Views,Start Time,End Time
-https://canvas.harvard.edu/,1,2015-01-26,2015-03-16
-```
+The third report is the most granular, since it gives you each page view record for each user in the course. This report is then rolled up to the user (report #2), and the course overall (report #1). All three reports are generated at the same time.
 
-JSON file format:
+**Caveats:**
 
-```javascript
-[
-    {  
-        "url": "https://canvas.harvard.edu/"
-        "pageviews": 1,
-        "end_time": "2015-03-16",
-        "start_time": "2015-01-26"
-    }
-]
-```
+This script reports **page views**, which Canvas considers distinct from **asset accessess**. The latter is what you will find on the "Access Report" page for a user:
+
+https://canvas.harvard.edu/courses/:course_id/users/:user_id/usage
+
+See the [application controller comments](https://github.com/instructure/canvas-lms/blob/01dd6697795b0f4ae734bd2538e7e58fec63ab7e/app/controllers/application_controller.rb#L853) on the [canvas-lms](://github.com/instructure/canvas-lms) github account.
+
+There is some logic in there so that page views are not double-counted, which accounts for the discrepancy with "Times Viewed" on the "Access Report," which is equal to or greater than the page view count.
 
 **Canvas Resources:**
 
