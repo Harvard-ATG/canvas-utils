@@ -22,12 +22,12 @@ if [ -z "$ENDPOINT" ]; then
 fi
 
 API_URL="https://canvas.harvard.edu/api/v1/$ENDPOINT"
-if [ ! -z "$QUERY_PARAMS"]; then
+if [ ! -z "$QUERY_PARAMS" ]; then
 	API_URL="$API_URL?$QUERY_PARAMS"
 fi
 
 AUTH_HEADER="Authorization: Bearer $OAUTH_TOKEN"
-echo "AUTH_HEADER=$AUTH_HEADER API_URL=$API_URL"
+>&2 echo "AUTH_HEADER=$AUTH_HEADER API_URL=$API_URL"
 
-RESPONSE=$(curl "$API_URL" -H "$AUTH_HEADER" | python -mjson.tool)
-echo "RESPONSE=$RESPONSE"
+RESPONSE=$(curl --silent "$API_URL" -H "$AUTH_HEADER" | python -mjson.tool)
+echo "$RESPONSE"
