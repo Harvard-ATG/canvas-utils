@@ -471,12 +471,12 @@ def main():
     },{
         "format": "csv",
         "name": "user-pageviews", 
-        "labels":  ["User ID", "Course URL", "Access Date"], 
+        "labels":  ["User ID", "Course URL", "Request Date"], 
         "items": store_page_views_by_user
     },{
         "format": "json",
         "name": "user-pageviews", 
-        "labels":  ["user_id", "course_url", "access_date"],  
+        "labels":  ["user_id", "course_url", "request_date"],  
         "items": store_page_views_by_user
     }])
 
