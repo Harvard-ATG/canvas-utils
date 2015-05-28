@@ -45,7 +45,7 @@ The third report is the most granular, since it gives you each page view record 
 
 **Caveats:**
 
-This script reports **page views**, which Canvas considers distinct from **asset accessess**. The latter is what you will find on the "Access Report" page for a user:
+This script reports **page views**, which Canvas considers distinct from **asset accesses**. The latter is what you will find on the "Access Report" page for a user:
 
 https://canvas.harvard.edu/courses/:course_id/users/:user_id/usage
 
