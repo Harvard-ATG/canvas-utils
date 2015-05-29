@@ -451,22 +451,22 @@ def main():
     save_data([{
         "format": "csv",
         "name": "total-pageviews", 
-        "labels":  ["Course URL", "Total Views"], 
+        "labels":  ["Course URL", "Page Views"], 
         "items": store_total_page_views_by_url
     },{ 
         "format": "json",
         "name": "total-pageviews", 
-        "labels":  ["course_url", "total_views"],
+        "labels":  ["course_url", "page_views"],
         "items": store_total_page_views_by_url
     },{
         "format": "csv",
         "name": "total-user-pageviews", 
-        "labels":  ["User ID", "Course URL", "Total Views"], 
+        "labels":  ["User ID", "Course URL", "Page Views"], 
         "items": store_total_page_views_by_user
     },{
         "format": "json",
         "name": "total-user-pageviews", 
-        "labels":  ["user_id", "course_url", "total_views"],  
+        "labels":  ["user_id", "course_url", "page_view"],  
         "items": store_total_page_views_by_user
     },{
         "format": "csv",
