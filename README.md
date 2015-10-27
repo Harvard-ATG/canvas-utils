@@ -10,3 +10,4 @@ $ source pyenv/bin/activate
 $ pip install -r requirements.txt
 ```
 
+See the [skeleton](https://github.com/Harvard-ATG/canvas-utils/tree/master/skeleton) to get started with a script to interact with the Canvas API.
