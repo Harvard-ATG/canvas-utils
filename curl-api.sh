@@ -4,13 +4,14 @@
 #
 # Usage:
 # 
-# export OAUTH_TOKEN=""
-# ./curl-api.sh courses
+#     export OAUTH_TOKEN='mytoken'
+#     export CANVAS_URL='https://canvas.localhost/api'
+#     ./curl-api.sh courses
 #
-# -- OR --
+#     -- OR --
 # 
-# env CANVAS_URL="" OAUTH_TOKEN="" ./curl-api.sh courses
-# env CANVAS_URL="" OAUTH_TOKEN="" ./curl-api.sh users/27/page_views start_time=2015-05-01&end_time=2015-05-28
+#    env CANVAS_URL='https://canvas.localhost/api' OAUTH_TOKEN='mytoken' ./curl-api.sh courses
+#    env CANVAS_URL='https://canvas.localhost/api' OAUTH_TOKEN='mytoken' ./curl-api.sh users/123/page_views start_time=2015-05-01&end_time=2015-05-28
 #
 
 ENDPOINT=$1
