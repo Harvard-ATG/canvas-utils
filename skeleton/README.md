@@ -1,6 +1,6 @@
 # README
 
-This is a skeleton directory intended to be cloned. You will need to be familiar with the canvas API docs and Canvas Python SDK.
+This is a skeleton directory intended to be cloned. You will need to be familiar with the canvas API docs and Canvas Python SDK:
 
 1. [API DOCS](https://canvas.instructure.com/doc/api/index.html)
 2. [Canvas SDK](https://github.com/penzance/canvas_python_sdk) (Note: the [wiki](https://github.com/penzance/canvas_python_sdk/wiki) has some background info about how to use the SDK)
