@@ -10,9 +10,13 @@ $ source pyenv/bin/activate
 $ pip install -r requirements.txt
 ```
 
-See the [skeleton](https://github.com/Harvard-ATG/canvas-utils/tree/master/skeleton) to get started with a script to interact with the Canvas API.
+### Skeleton ###
 
-Or to run a quick test against the API using cURL:
+To start a new python script to interact with the Canvas API, use the [skeleton](https://github.com/Harvard-ATG/canvas-utils/tree/master/skeleton) to get started.
+
+### cURL Utility ###
+
+To run a quick test against the API using cURL:
 
 ```sh
 env CANVAS_URl='https://canvas/api' OAUTH_TOKEN='mytoken' ./curl-api.sh courses
