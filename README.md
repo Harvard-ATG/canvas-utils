@@ -4,6 +4,8 @@ A collection of utilities and scripts for working with the Canvas LMS.
 
 ## Quickstart
 
+Initialize your python virtual environment and install python module requirements:
+
 ```sh
 $ virtualenv pyenv
 $ source pyenv/bin/activate
