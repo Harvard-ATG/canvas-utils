@@ -1,6 +1,9 @@
 # README
 
-This is a skeleton directory intended to be cloned.
+This is a skeleton directory intended to be cloned. You will need to be familiar with the canvas API docs and Canvas Python SDK.
+
+1. [API DOCS](https://canvas.instructure.com/doc/api/index.html)
+2. [Canvas SDK](https://github.com/penzance/canvas_python_sdk)
 
 ### Quickstart ###
 
@@ -17,3 +20,5 @@ $ python skeleton.py
 ```
 
 If it works as expected, you should see a list of your courses printed to the console in JSON format.
+
+
