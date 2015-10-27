@@ -9,8 +9,8 @@
 #
 # -- OR --
 # 
-# env OAUTH_TOKEN="" ./curl-api.sh courses
-# env OAUTH_TOKEN="" ./curl-api.sh users/27/page_views start_time=2015-05-01&end_time=2015-05-28
+# env CANVAS_URL="" OAUTH_TOKEN="" ./curl-api.sh courses
+# env CANVAS_URL="" OAUTH_TOKEN="" ./curl-api.sh users/27/page_views start_time=2015-05-01&end_time=2015-05-28
 #
 
 ENDPOINT=$1
@@ -20,7 +20,7 @@ if [ -z "$ENDPOINT" ]; then
 	ENDPOINT="courses"
 fi
 
-API_URL="https://canvas.harvard.edu/api/v1/$ENDPOINT"
+API_URL="$CANVAS_URL/v1/$ENDPOINT" 
 if [ ! -z "$QUERY_PARAMS" ]; then
 	API_URL="$API_URL?$QUERY_PARAMS"
 fi
