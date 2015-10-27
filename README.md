@@ -18,7 +18,7 @@ To start a new python script to interact with the Canvas API, use the [skeleton]
 
 ### cURL Utility ###
 
-To run a quick test against the API using cURL:
+To run a quick-and-dirty test against the API using cURL:
 
 ```sh
 env CANVAS_URl='https://canvas/api' OAUTH_TOKEN='mytoken' ./curl-api.sh courses
