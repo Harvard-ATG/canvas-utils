@@ -4,3 +4,4 @@
 /canvas_page_views/*.csv
 /canvas_page_views/*.json
 /canvas_page_views/*.log
+/pyenv/*
