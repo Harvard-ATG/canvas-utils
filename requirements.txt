@@ -1,0 +1,1 @@
+git+https://github.com/penzance/canvas_python_sdk@master#egg=canvas_python_sdk==0.8.3
