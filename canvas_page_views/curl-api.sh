@@ -4,18 +4,17 @@
 #
 # Usage:
 # 
+# export OAUTH_TOKEN=""
 # ./curl-api.sh courses
-# ./curl-api.sh users/27/page_views start_time=2015-05-01&end_time=2015-05-28
 #
-
-if [ ! -e "./oauthtoken.txt" ]; then
-	echo "You must setup oauthtoken.txt to make API requests."
-	exit;
-fi
+# -- OR --
+# 
+# env OAUTH_TOKEN="" ./curl-api.sh courses
+# env OAUTH_TOKEN="" ./curl-api.sh users/27/page_views start_time=2015-05-01&end_time=2015-05-28
+#
 
 ENDPOINT=$1
 QUERY_PARAMS=$2
-OAUTH_TOKEN=$(cat oauthtoken.txt)
 
 if [ -z "$ENDPOINT" ]; then
 	ENDPOINT="courses"
