@@ -5,8 +5,10 @@ from canvas_sdk import RequestContext
 import sys
 
 # Get the course ID from the command line
-course_id = sys.argv[1]
-if course_id is None:
+course_id = None
+if len(sys.argv) == 2:
+    course_id = sys.argv[1]
+else:
     sys.exit("Error: missing course_id")
 
 # Setup the request context with a large pagination limit (minimize # of requests)
