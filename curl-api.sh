@@ -27,7 +27,8 @@ if [ ! -z "$QUERY_PARAMS" ]; then
 fi
 
 AUTH_HEADER="Authorization: Bearer $OAUTH_TOKEN"
->&2 echo "AUTH_HEADER=$AUTH_HEADER API_URL=$API_URL"
+#>&2 echo "AUTH_HEADER=$AUTH_HEADER API_URL=$API_URL"
+>&2 echo "API_URL=$API_URL"
 
 RESPONSE=$(curl --silent "$API_URL" -H "$AUTH_HEADER" | python -mjson.tool)
 echo "$RESPONSE"
