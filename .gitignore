@@ -1,5 +1,5 @@
 *.pyc
-/skeleton/settings/secure.py
+secure.py
 /canvas_page_views/oauthtoken.txt
 /canvas_page_views/*.csv
 /canvas_page_views/*.json
