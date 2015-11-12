@@ -4,8 +4,16 @@ from canvas_sdk.utils import get_all_list_data
 from canvas_sdk import RequestContext
 import sys
 import pprint
+import logging
 
 pp = pprint.PrettyPrinter(indent=2)
+
+# Setup Logging so we can see the API requests as they happen
+logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
+logging.getLogger().setLevel(logging.DEBUG)
+requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log.setLevel(logging.DEBUG)
+requests_log.propagate = True
 
 # Get the course ID from the command line
 course_id = None
@@ -17,14 +25,7 @@ else:
 # Setup the request context with a large pagination limit (minimize # of requests)
 request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL)
 
-# NOTE: you must use get_all_list_data() in order to follow the paginated results
-# and get all the data.
-#
-# If you just call the method directly, you'll get a single page (max 100 results)
-# which may or may not include everyone if there are >100 students in the course.
-
 #response = courses.list_users_in_course_users(request_context, course_id, "email", enrollment_type="student")
-
 results = get_all_list_data(request_context, courses.list_users_in_course_users, course_id, "email", enrollment_type="student")
 
 user_ids = [r['id'] for r in results]
