@@ -2,7 +2,6 @@ from settings.secure import OAUTH_TOKEN, CANVAS_URL
 from canvas_sdk.methods import submissions, assignments
 from canvas_sdk.utils import get_all_list_data
 from canvas_sdk import RequestContext
-from collections import OrderedDict
 import sys
 import logging
 import json
