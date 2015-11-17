@@ -1,4 +1,5 @@
 *.pyc
+*.log
 secure.py
 /canvas_page_views/oauthtoken.txt
 /canvas_page_views/*.csv
