@@ -10,6 +10,7 @@ import pprint
 
 pp = pprint.PrettyPrinter(indent=2)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Setup Logging so we can see the API requests as they happen
 logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
@@ -34,7 +35,7 @@ def get_rubric_assessments(request_context, course_id, assignment_ids):
     request_params = OrderedDict([ 
         ("course_id", course_id),
         ("student_ids", 'all'),
-        ("assignment_ids", ['20098']),
+        ("assignment_ids", assignment_ids),
         ("grouped", False),
         ("include", "rubric_assessment"),
     ])
