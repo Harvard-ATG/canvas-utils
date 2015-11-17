@@ -14,7 +14,13 @@ $ pip install -r requirements.txt
 
 ### Skeleton ###
 
-To start a new python script to interact with the Canvas API, use the [skeleton](https://github.com/Harvard-ATG/canvas-utils/tree/master/skeleton).
+Use the [skeleton](https://github.com/Harvard-ATG/canvas-utils/tree/master/skeleton) as a template to get started with a new utility script:
+
+```sh
+$ cp -r skeleton myscript
+$ touch myscript/settings/secure.py
+$ cd myscript/
+```
 
 ### cURL Utility ###
 
