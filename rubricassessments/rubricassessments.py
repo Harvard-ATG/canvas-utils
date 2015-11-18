@@ -29,7 +29,7 @@ def get_rubric_assessments(request_context, course_id, assignment_ids):
         logger.debug("Rubric Assessments for assignment %s: %s" % (assignment_id, results))
         rubric_assessments.append({
             "assignment_id": assignment_id, 
-            "rubric_assessments": results, 
+            "submissions": results, 
             "total": len(results) 
         })
     return rubric_assessments
