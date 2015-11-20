@@ -105,7 +105,7 @@ def transform_data_by_student(data):
     # Student2
     #   ...
     by_student = {}
-    for assignment_idx, assignment in enumerate(assignments):
+    for assignment in assignments:
         assignment_id = assignment['id']
         rubric = assignment['rubric']
         criteria_dict = dict([(criteria['id'], criteria) for criteria in rubric])
@@ -120,30 +120,13 @@ def transform_data_by_student(data):
 
             user_id = submission['user_id']
             if not user_id in by_student:
-                by_student[user_id] = [None] * len(assignments)
-            if by_student[user_id][assignment_idx] is None:
-                by_student[user_id][assignment_idx] = {}
-            
-            graded_assignment = by_student[user_id][assignment_idx]
-            graded_assignment.update({
+                by_student[user_id] = {}
+
+            by_student[user_id][assignment_id] = {
                 'assignment_id': assignment['id'],
                 'assignment_name': assignment['name'],
-                'rubric': [],
-            })
-            
-            for criteria in rubric:
-                criteria_id = criteria['id']
-                graded_criteria_comments = None
-                graded_criteria_points = None
-                if rubric_assessment is not None and criteria_id in rubric_assessment:
-                    graded_criteria = rubric_assessment[criteria_id]
-                    graded_criteria_comments = graded_criteria['comments']
-                    graded_criteria_points = graded_criteria['points']
-                graded_assignment['rubric'].append({
-                    'description': criteria['description'],
-                    'comments': graded_criteria_comments,
-                    'points': graded_criteria_points,
-                })
+                'rubric': _get_rubric(rubric, rubric_assessment),
+            }
 
     student_results = []
     for student in students:
@@ -151,15 +134,46 @@ def transform_data_by_student(data):
         user_name = student['sortable_name']
         if user_id not in by_student:
             continue
+        student_assignments = []
+        for assignment in assignments:
+            assignment_id = assignment['id']
+            assignment_name = assignment['name']
+            rubric = assignment['rubric']
+            if assignment_id in by_student[user_id]:
+                student_assignments.append(by_student[user_id][assignment_id])
+            else:
+                student_assignments.append({
+                    'assignment_id': assignment_id,
+                    'assignment_name': assignment_name,
+                    'rubric': _get_rubric(rubric, None),
+                })
         student_results.append({
             'user_id': user_id,
             'sortable_name': user_name,
-            'data': by_student[user_id],
+            'data': student_assignments,
         })
 
     logger.info(json.dumps(student_results, sort_keys=True, indent=2, separators=(',', ': ')))
 
     return student_results
+
+def _get_rubric(rubric, rubric_assessment):
+    result = []
+    for criteria in rubric:
+        criteria_id = criteria['id']
+        graded_criteria_comments = None
+        graded_criteria_points = None
+        if rubric_assessment is not None and criteria_id in rubric_assessment:
+            graded_criteria = rubric_assessment[criteria_id]
+            graded_criteria_comments = graded_criteria['comments']
+            graded_criteria_points = graded_criteria['points']
+        result.append({
+            'description': criteria['description'],
+            'comments': graded_criteria_comments,
+            'points': graded_criteria_points,
+        })
+    return result
+
 
 def save_json(filename=None, data=None):
     '''
@@ -196,8 +210,6 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
         graded_assignments = student['data']
         assignment_col = start_col
         for assignment_idx, graded_assignment in enumerate(graded_assignments):
-            if graded_assignment is None:
-                continue
             assignment_name = "%s (%s)" % (graded_assignment['assignment_name'], graded_assignment['assignment_id'])
             ws.write(0,  assignment_col, assignment_name)
 
