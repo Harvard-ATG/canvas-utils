@@ -16,23 +16,22 @@ def get_assignments_list(request_context, course_id):
     logger.debug("Assignments List: %s" % [r['id'] for r in results]) 
     return results
 
-def get_rubric_assessments(request_context, course_id, assignment_ids):
+def get_submissions_with_rubric_assessments(request_context, course_id, assignment_ids):
     '''
     Returns the submission and rubric assessment data for each assignment.
 
     https://canvas.instructure.com/doc/api/submissions.html#method.submissions_api.index
     '''
     include = "rubric_assessment"
-    rubric_assessments = []
+    results = []
     for assignment_id in assignment_ids:
-        results = get_all_list_data(request_context, submissions.list_assignment_submissions_courses, course_id, assignment_id, include)
-        logger.debug("Rubric Assessments for assignment %s: %s" % (assignment_id, results))
-        rubric_assessments.append({
-            "assignment_id": assignment_id, 
-            "submissions": results, 
-            "total": len(results) 
+        list_data = get_all_list_data(request_context, submissions.list_assignment_submissions_courses, course_id, assignment_id, include)
+        logger.debug("Submissions for assignment %s: %s" % (assignment_id, list_data))
+        results.append({
+            "assignment_id": assignment_id,
+            "submissions": list_data,
         })
-    return rubric_assessments
+    return results
 
 # Setup Logging so we can see the API requests as they happen
 logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
@@ -54,17 +53,15 @@ else:
 request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL, per_page=100)
 assignments = get_assignments_list(request_context, course_id)
 assignment_ids = [a['id'] for a in assignments]
-rubric_assessments = get_rubric_assessments(request_context, course_id, assignment_ids)
+submissions = get_submissions_with_rubric_assessments(request_context, course_id, assignment_ids)
 
 # Format and output the data
-filename = "{course_id}.json.log".format(course_id=course_id)
+filename = "{course_id}.json".format(course_id=course_id)
 logger.info("Writing data to %s" % filename)
 with open(filename, 'w') as outfile:
     results = {
         'Assignments': assignments,
-        'Assignments Total': len(assignments),
-        'Rubric Assessments': rubric_assessments,
-        'Rubric Assessments Total': sum([x['total'] for x in rubric_assessments]),
+        'Submissions': submissions,
     }
     json.dump(results, outfile, sort_keys=True, indent=2, separators=(',', ': '))
 logger.info("Done.")
