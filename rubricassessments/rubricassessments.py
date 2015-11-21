@@ -157,8 +157,8 @@ def _get_rubric(rubric, rubric_assessment):
         graded_criteria_points = None
         if rubric_assessment is not None and criteria_id in rubric_assessment:
             graded_criteria = rubric_assessment[criteria_id]
-            graded_criteria_comments = graded_criteria['comments']
-            graded_criteria_points = graded_criteria['points']
+            graded_criteria_comments = graded_criteria.get('comments', '')
+            graded_criteria_points = graded_criteria.get('points', None)
         result.append({
             'description': criteria['description'],
             'comments': graded_criteria_comments,
