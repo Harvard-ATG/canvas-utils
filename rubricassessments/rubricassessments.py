@@ -86,24 +86,13 @@ def transform_data_by_student(data):
     assignments = [a for a in data['assignments'] if 'rubric' in a]
     assignment_ids = [a['id'] for a in assignments]
     assignment_dict = dict([(a['id'], a) for a in assignments])
-    
-    # Setup submission lookup by assignment ID.
-    submissions_dict = dict([(s['assignment_id'], s['submissions']) for s in data['submissions'] if s['assignment_id'] in assignment_ids])
+    submissions_dict = dict([
+        (s['assignment_id'], s['submissions']) 
+        for s in data['submissions'] 
+        if s['assignment_id'] in assignment_ids])
 
-    # Collect the rubric assessment data per assignment per student.
-    # We want to end up with a structure like this:
-    #
-    # Student1
-    #   Assignment1
-    #       Rubric
-    #           Criteria1
-    #           Criteria2
-    #           ...
-    #           CriteriaN
-    #   Assignment2
-    #       ...
-    # Student2
-    #   ...
+    # Group the assignments and rubric assessments by student
+    # based on the existing submission data.
     by_student = {}
     for assignment in assignments:
         assignment_id = assignment['id']
@@ -128,18 +117,21 @@ def transform_data_by_student(data):
                 'rubric': _get_rubric(rubric, rubric_assessment),
             }
 
+    # Generate a complete list of students and their associated assignment
+    # rubric assessments. If a student either did not submit the assignment,
+    # or no rubric assessment was present, insert a blank rubric assessment
+    # for the assignment. This ensures that every student has every assignment
+    # and every assignment has a rubric assessment (blank or otherwise).
     student_results = []
     for student in students:
         user_id = student['id']
         user_name = student['sortable_name']
-        if user_id not in by_student:
-            continue
         student_assignments = []
         for assignment in assignments:
             assignment_id = assignment['id']
             assignment_name = assignment['name']
             rubric = assignment['rubric']
-            if assignment_id in by_student[user_id]:
+            if user_id in by_student and assignment_id in by_student[user_id]:
                 student_assignments.append(by_student[user_id][assignment_id])
             else:
                 student_assignments.append({
