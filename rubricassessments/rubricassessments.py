@@ -188,20 +188,21 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
     # Formats/Styles
     bold_style = xlwt.easyxf('font: bold 1')
     right_align = xlwt.easyxf("align: horiz right")
-    student_name_fmt = "{sortable_name} ({user_id})"
-    assignment_name_fmt = "{assignment_name} ({assignment_id})"
-    criteria_name_fmt = "Criteria {num}: {description}"
+    student_name_fmt = u'{sortable_name} ({user_id})'
+    assignment_name_fmt = u'{assignment_name} ({assignment_id})'
+    criteria_name_fmt = u'Criteria {num}: {description}'
     
     # Create workbook
-    wb = xlwt.Workbook()
+    wb = xlwt.Workbook(encoding="utf-8")
     ws = wb.add_sheet('Assignments Sheet', cell_overwrite_ok=True)
-    ws.write(0,0, u"Assignment \u2192", right_align)
-    ws.write(1,0, u"Rubric \u2192", right_align)
-    ws.write(2,0, u"Students \u2193")
+    ws.write(0,0, u'Assignment \u2192'.encode('utf-8'), right_align)
+    ws.write(1,0, u'Rubric \u2192'.encode('utf-8'), right_align)
+    ws.write(2,0, u'Students \u2193'.encode('utf-8'))
     ws.col(0).width = 256 * max([len(student_name_fmt.format(**s)) for s in student_results])
 
     # Insert the worksheet data
     start_row, start_col = (3, 1)
+    header_inserted = {'assignment':{},'criteria':{}}
     for user_idx, student in enumerate(student_results):
         user_row = start_row + user_idx
         ws.write(user_row, 0, student_name_fmt.format(**student))
@@ -210,15 +211,19 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
         for assignment_idx, graded_assignment in enumerate(graded_assignments):
             criteria_col = assignment_col
             for criteria_idx, criteria in enumerate(graded_assignment['rubric']):
-                criteria_label = criteria_name_fmt.format(num=criteria_idx+1, description=criteria['description'])
-                ws.write_merge(1, 1, criteria_col, criteria_col + 1, criteria_label)
-                ws.write(2, criteria_col, "Comments")
-                ws.write(2, criteria_col + 1, "Points")
                 ws.write(user_row, criteria_col, criteria['comments'])
                 ws.write(user_row, criteria_col + 1, criteria['points'])
+                if criteria_col not in header_inserted['criteria']:
+                    criteria_label = criteria_name_fmt.format(num=criteria_idx+1, description=criteria['description'])
+                    ws.write_merge(1, 1, criteria_col, criteria_col + 1, criteria_label)
+                    ws.write(2, criteria_col, "Comments")
+                    ws.write(2, criteria_col + 1, "Points")
+                    header_inserted['criteria'][criteria_col] = True
                 criteria_col += 2
-            assignment_name = assignment_name_fmt.format(**graded_assignment)
-            ws.write_merge(0,  0, assignment_col, criteria_col - 1, assignment_name, bold_style)
+            if assignment_col not in header_inserted['assignment']:
+                assignment_name = assignment_name_fmt.format(**graded_assignment)
+                ws.write_merge(0,  0, assignment_col, criteria_col - 1, assignment_name, bold_style)
+                header_inserted['assignment'][assignment_col] = True
             assignment_col = criteria_col
 
     logger.info("Writing data to %s" % filename)
