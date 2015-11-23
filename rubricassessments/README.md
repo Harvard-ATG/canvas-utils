@@ -15,7 +15,7 @@ $ python rubricassessments.py [course_id]
 $ open [course_id].xls
 ```
 
-If it worked, you should see  log output while the python script executed and then three files should have been created in the current directory. For example, assuming ```course_id=123``, you should see these files:
+If it worked, you should see  log output while the python script executed and then three files should have been created in the current directory. For example, assuming ```course_id=123```, you should see these files:
 
 * _123.json_: contains the raw data fetched from the Canvas API.
 * _123-transformed.json_: contains the transformed data used to generate the spreadsheet.
