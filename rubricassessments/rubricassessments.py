@@ -61,6 +61,9 @@ def get_submissions_with_rubric_assessments(request_context, course_id, assignme
     return results
 
 def load_rubric_data(course_id):
+    '''
+    Loads all data needed to work with rubric assessments.
+    '''
     request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL, per_page=100)
     students = get_students_list(request_context, course_id)
     assignments = get_assignments_list(request_context, course_id)
@@ -73,7 +76,11 @@ def load_rubric_data(course_id):
     }
     return data
 
-def transform_data_by_student(data):
+def transform_rubric_data(data):
+    '''
+    Transforms the raw rubric assessment data so that it's grouped by
+    student.
+    '''
     if not ('assignments' in data and 'submissions' in data):
         raise Exception("missing 'assignments' and 'submissions' in data")
 
@@ -96,25 +103,16 @@ def transform_data_by_student(data):
     by_student = {}
     for assignment in assignments:
         assignment_id = assignment['id']
-        rubric = assignment['rubric']
-        criteria_dict = dict([(criteria['id'], criteria) for criteria in rubric])
-        submissions = []
-        if assignment_id in submissions_dict:
-            submissions = submissions_dict[assignment_id]
-        
-        for submission in submissions:
-            rubric_assessment = None
-            if 'rubric_assessment' in submission:
-                rubric_assessment = submission['rubric_assessment']
-
+        assignment_name = assignment['name']
+        rubric_definition = assignment['rubric']
+        for submission in submissions_dict.get(assignment_id, []):
+            rubric_assessment = submission.get('rubric_assessment', None)
             user_id = submission['user_id']
-            if not user_id in by_student:
-                by_student[user_id] = {}
-
+            by_student.setdefault(user_id, {})
             by_student[user_id][assignment_id] = {
-                'assignment_id': assignment['id'],
-                'assignment_name': assignment['name'],
-                'rubric': _get_rubric(rubric, rubric_assessment),
+                'assignment_id': assignment_id,
+                'assignment_name': assignment_name,
+                'rubric': _merge_rubric(rubric_definition, rubric_assessment),
             }
 
     # Generate a complete list of students and their associated assignment
@@ -130,14 +128,14 @@ def transform_data_by_student(data):
         for assignment in assignments:
             assignment_id = assignment['id']
             assignment_name = assignment['name']
-            rubric = assignment['rubric']
+            rubric_definition = assignment['rubric']
             if user_id in by_student and assignment_id in by_student[user_id]:
                 student_assignments.append(by_student[user_id][assignment_id])
             else:
                 student_assignments.append({
                     'assignment_id': assignment_id,
                     'assignment_name': assignment_name,
-                    'rubric': _get_rubric(rubric, None),
+                    'rubric': _merge_rubric(rubric_definition, None),
                 })
         student_results.append({
             'user_id': user_id,
@@ -149,9 +147,12 @@ def transform_data_by_student(data):
 
     return student_results
 
-def _get_rubric(rubric, rubric_assessment):
+def _merge_rubric(rubric_definition, rubric_assessment):
+    '''
+    Helper function to merge a rubric definition and rubric assessment.
+    '''
     result = []
-    for criteria in rubric:
+    for criteria in rubric_definition:
         criteria_id = criteria['id']
         graded_criteria_comments = None
         graded_criteria_points = None
@@ -184,12 +185,20 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
     if filename is None:
         raise Exception("Filename is required")
 
+    # Formats/Styles
+    bold_style = xlwt.easyxf('font: bold 1')
+    right_align = xlwt.easyxf("align: horiz right")
+    student_name_fmt = "{sortable_name} ({user_id})"
+    assignment_name_fmt = "{assignment_name} ({assignment_id})"
+    criteria_name_fmt = "Criteria {num}: {description}"
+    
     # Create workbook
     wb = xlwt.Workbook()
     ws = wb.add_sheet('Assignments Sheet', cell_overwrite_ok=True)
-    ws.write(0,0, "Project")
-    ws.write(1,0, "Rubric")
-    ws.write(2,0, "Students")
+    ws.write(0,0, u"Assignment \u2192", right_align)
+    ws.write(1,0, u"Rubric \u2192", right_align)
+    ws.write(2,0, u"Students \u2193")
+    ws.col(0).width = 256 * max([len(student_name_fmt.format(**s)) for s in student_results])
 
     start_row, start_col = (3, 1)
     for user_idx, student in enumerate(student_results):
@@ -197,24 +206,24 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
         user_name = student['sortable_name']
 
         user_row = start_row + user_idx
-        ws.write(user_row, 0, "%s (%s)" % (user_name, user_id))
+        ws.write(user_row, 0, student_name_fmt.format(**student))
 
         graded_assignments = student['data']
         assignment_col = start_col
         for assignment_idx, graded_assignment in enumerate(graded_assignments):
-            assignment_name = "%s (%s)" % (graded_assignment['assignment_name'], graded_assignment['assignment_id'])
-            ws.write(0,  assignment_col, assignment_name)
-
             criteria_col = assignment_col
             for criteria_idx, criteria in enumerate(graded_assignment['rubric']):
-                criteria_label = "Criteria %s: %s" % (criteria_idx + 1, criteria['description'])
-                ws.write(1, criteria_col, criteria_label)
+                criteria_label = criteria_name_fmt.format(num=criteria_idx+1, description=criteria['description'])
+                ws.write_merge(1, 1, criteria_col, criteria_col + 1, criteria_label)
                 ws.write(2, criteria_col, "Comments")
                 ws.write(2, criteria_col + 1, "Points")
                 ws.write(user_row, criteria_col, criteria['comments'])
                 ws.write(user_row, criteria_col + 1, criteria['points'])
                 criteria_col += 2
+            assignment_name = assignment_name_fmt.format(**graded_assignment)
+            ws.write_merge(0,  0, assignment_col, criteria_col - 1, assignment_name, bold_style)
             assignment_col = criteria_col
+
 
     logger.info("Writing data to %s" % filename)
     wb.save(filename)
@@ -244,7 +253,7 @@ if data['_cache'] is True:
     save_json(filename=cache_json_filename, data=data)
 
 # Transform the data to a per-student assignment results (rubric assessments)
-student_results = transform_data_by_student(data)
+student_results = transform_rubric_data(data)
 save_json(filename=transformed_json_filename, data=student_results)
 
 # Create a spreadsheet of the results by student
