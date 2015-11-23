@@ -200,14 +200,11 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
     ws.write(2,0, u"Students \u2193")
     ws.col(0).width = 256 * max([len(student_name_fmt.format(**s)) for s in student_results])
 
+    # Insert the worksheet data
     start_row, start_col = (3, 1)
     for user_idx, student in enumerate(student_results):
-        user_id = student['user_id']
-        user_name = student['sortable_name']
-
         user_row = start_row + user_idx
         ws.write(user_row, 0, student_name_fmt.format(**student))
-
         graded_assignments = student['data']
         assignment_col = start_col
         for assignment_idx, graded_assignment in enumerate(graded_assignments):
@@ -223,7 +220,6 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
             assignment_name = assignment_name_fmt.format(**graded_assignment)
             ws.write_merge(0,  0, assignment_col, criteria_col - 1, assignment_name, bold_style)
             assignment_col = criteria_col
-
 
     logger.info("Writing data to %s" % filename)
     wb.save(filename)
