@@ -60,7 +60,7 @@ def load_data(course_id):
     page_views = []
     for user in course_users:
         user_id = user['id']
-        results = get_all_list_data(request_context, users.list_user_page_views, user_id) #, start_time=start_time, end_time=end_time
+        results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
         logger.debug("Page views for user_id=%s results=%s" % (user_id, results))
         page_views.extend(results) # [r for r in results if r['url'].startswith(course_url)]
 
