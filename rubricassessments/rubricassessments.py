@@ -10,10 +10,6 @@ import argparse
 import xlwt
 import datetime
 
-parser = argparse.ArgumentParser(description='Gets assignment and submission data with rubric assessments for a given course.')
-parser.add_argument('course_id', type=int, help="The canvas course ID")
-args = parser.parse_args()
-
 logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
 logging.getLogger().setLevel(logging.DEBUG)
 requests_log = logging.getLogger("requests.packages.urllib3")
@@ -21,6 +17,44 @@ requests_log.setLevel(logging.DEBUG)
 requests_log.propagate = True
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+def main():
+    # Parse the CLI arguments
+    parser = argparse.ArgumentParser(description='Gets assignment and submission data with rubric assessments for a given course.')
+    parser.add_argument('course_id', type=int, help="The canvas course ID")
+    args = parser.parse_args()
+    
+    # Get the data from local cache or Canvas API
+    course_id = args.course_id
+    base_path = os.path.dirname(__file__)
+    cache_json_filename = os.path.join(base_path, "%s.json" % course_id)
+    transformed_json_filename = os.path.join(base_path, "%s-transformed.json" % course_id)
+    spreadsheet_filename = os.path.join(base_path, "%s.xls" % course_id)
+    
+    data = None
+    logger.info("Checking cache: %s" % cache_json_filename)
+    if os.path.exists(cache_json_filename):
+        logger.info("Loading data from file %s instead of fetching from %s" % (cache_json_filename, CANVAS_URL))
+        with open(cache_json_filename, 'r') as f:
+            data = json.load(f)
+            data['_cache'] = False
+    else:
+        logger.info("Loading data from %s" % CANVAS_URL)
+        data = load_rubric_data(course_id)
+        data['_cache'] = True
+    
+    # Save the raw API data (i.e. cache it) since it's expensive to load
+    if data['_cache'] is True:
+        save_json(filename=cache_json_filename, data=data)
+    
+    # Transform the data to a per-student assignment results (rubric assessments)
+    student_results = transform_rubric_data(data)
+    save_json(filename=transformed_json_filename, data=student_results)
+    
+    # Create a spreadsheet of the results by student
+    save_rubric_spreadsheet(filename=spreadsheet_filename, student_results=student_results)
+    
+    logger.info("Done.")
 
 def get_students_list(request_context, course_id):
     '''
@@ -230,34 +264,5 @@ def save_rubric_spreadsheet(filename=None, student_results=None):
     wb.save(filename)
 
 
-# Get the data from local cache or Canvas API
-course_id = args.course_id
-base_path = os.path.dirname(__file__)
-cache_json_filename = os.path.join(base_path, "%s.json" % course_id)
-transformed_json_filename = os.path.join(base_path, "%s-transformed.json" % course_id)
-spreadsheet_filename = os.path.join(base_path, "%s.xls" % course_id)
-
-data = None
-logger.info("Checking cache: %s" % cache_json_filename)
-if os.path.exists(cache_json_filename):
-    logger.info("Loading data from file %s instead of fetching from %s" % (cache_json_filename, CANVAS_URL))
-    with open(cache_json_filename, 'r') as f:
-        data = json.load(f)
-        data['_cache'] = False
-else:
-    logger.info("Loading data from %s" % CANVAS_URL)
-    data = load_rubric_data(course_id)
-    data['_cache'] = True
-
-# Save the raw API data (i.e. cache it) since it's expensive to load
-if data['_cache'] is True:
-    save_json(filename=cache_json_filename, data=data)
-
-# Transform the data to a per-student assignment results (rubric assessments)
-student_results = transform_rubric_data(data)
-save_json(filename=transformed_json_filename, data=student_results)
-
-# Create a spreadsheet of the results by student
-save_rubric_spreadsheet(filename=spreadsheet_filename, student_results=student_results)
-
-logger.info("Done.")
+if __name__ == '__main__':
+    main()
