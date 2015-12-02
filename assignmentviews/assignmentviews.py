@@ -85,7 +85,7 @@ def get_page_views(course_id, user_ids):
         results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
         logger.debug("Page views for user_id=%s results=%s" % (user_id, results))
         if results:
-            page_views.extend([r for r in results if r.get('url','').startswith(course_url)])
+            page_views.extend([r for r in results if r and r.get('url','').startswith(course_url)])
 
     return page_views
 
