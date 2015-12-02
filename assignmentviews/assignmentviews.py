@@ -1,4 +1,4 @@
-from settings.secure import OAUTH_TOKEN, CANVAS_URL
+from settings.secure import OAUTH_TOKEN, CANVAS_URL, TEST_CANVAS_URL
 from canvas_sdk.methods import courses, users
 from canvas_sdk.utils import get_all_list_data
 from canvas_sdk import RequestContext
@@ -48,27 +48,45 @@ def main():
 
 def load_data(course_id):
     '''
-    Loads the page views data.
+    Load page views for all users in a course.
+    '''
+    course_users = get_students(course_id)
+    user_ids = [user['id'] for user in course_users]
+    page_views = get_page_views(course_id, user_ids)
+    data = {
+        "course_users": course_users,
+        "course_user_ids": [u['id'] for u in course_users],
+        "page_views": page_views,
+    }
+    return data
+
+def get_students(course_id):
+    '''
+    Get the student enrollment from TEST environment because the course must be
+    unconcluded and/or enrollment active. Since we can't unconclude the course
+    in production, we need to do it in TEST and then hit that API endpoint.
+    '''
+    request_context = RequestContext(OAUTH_TOKEN, TEST_CANVAS_URL)
+    course_users = get_all_list_data(request_context, courses.list_users_in_course_users, course_id, "email", enrollment_type="student")
+    return course_users
+
+def get_page_views(course_id, user_ids):
+    '''
+    Get the page views from the PROD environment because the page views aren't
+    synced over to the TEST environment.
     '''
     request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL)
-    course_users = get_all_list_data(request_context, courses.list_users_in_course_users, course_id, "email", enrollment_type="student")
-
     parsed_url = urlparse.urlparse(CANVAS_URL)
     course_url = "%s://%s/courses/%s" % (parsed_url.scheme, parsed_url.netloc, course_id)
     start_time, end_time = ("2015-01-01", "2015-06-15")
 
     page_views = []
-    for user in course_users:
-        user_id = user['id']
+    for user_id in user_ids:
         results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
         logger.debug("Page views for user_id=%s results=%s" % (user_id, results))
-        page_views.extend(results) # [r for r in results if r['url'].startswith(course_url)]
+        page_views.extend([r for r in results if r['url'].startswith(course_url)])
 
-    data = {
-        "course_users": course_users,
-        "page_views": page_views,
-    }
-    return data
+    return page_views
 
 def save_json(filename=None, data=None):
     '''
