@@ -44,6 +44,8 @@ def main():
     if data['_cache'] is True:
         save_json(filename=cache_json_filename, data=data)
 
+    logger.info("Total users: %s" % len(data['course_users']))
+    logger.info("Total page views: %s" % len(data['page_views']))
     logger.info("Done.")
 
 def load_data(course_id):
