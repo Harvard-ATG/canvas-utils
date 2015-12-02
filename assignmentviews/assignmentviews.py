@@ -66,7 +66,7 @@ def get_students(course_id):
     unconcluded and/or enrollment active. Since we can't unconclude the course
     in production, we need to do it in TEST and then hit that API endpoint.
     '''
-    request_context = RequestContext(OAUTH_TOKEN, TEST_CANVAS_URL)
+    request_context = RequestContext(OAUTH_TOKEN, TEST_CANVAS_URL, per_page=100)
     course_users = get_all_list_data(request_context, courses.list_users_in_course_users, course_id, "email", enrollment_type="student")
     return course_users
 
@@ -75,7 +75,7 @@ def get_page_views(course_id, user_ids):
     Get the page views from the PROD environment because the page views aren't
     synced over to the TEST environment.
     '''
-    request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL)
+    request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL, per_page=100)
     parsed_url = urlparse.urlparse(CANVAS_URL)
     course_url = "%s://%s/courses/%s" % (parsed_url.scheme, parsed_url.netloc, course_id)
     start_time, end_time = ("2015-01-01", "2015-06-15")
@@ -84,7 +84,8 @@ def get_page_views(course_id, user_ids):
     for user_id in user_ids:
         results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
         logger.debug("Page views for user_id=%s results=%s" % (user_id, results))
-        page_views.extend([r for r in results if r['url'].startswith(course_url)])
+        if results:
+            page_views.extend([r for r in results if r.get('url','').startswith(course_url)])
 
     return page_views
 
