@@ -4,6 +4,8 @@ This script is used to get rubric assessment data for all of the assignments in 
 
 ### Quickstart ###
 
+Make sure you've initialized your python virtualenv and installed the requirements (see canvas-utils  [README](https://github.com/Harvard-ATG/canvas-utils/blob/master/README.md)).
+
 ```sh
 $ cp settings/secure.py.example settings/secure.py
 ```
