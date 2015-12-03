@@ -1,6 +1,7 @@
 from settings.secure import OAUTH_TOKEN, CANVAS_URL, TEST_CANVAS_URL
 from canvas_sdk.methods import courses, users
 from canvas_sdk.utils import get_all_list_data
+from canvas_sdk.exceptions import CanvasAPIError
 from canvas_sdk import RequestContext
 import sys
 import os.path
@@ -9,6 +10,7 @@ import json
 import argparse
 import urlparse
 import datetime
+import csv
 
 logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
 logging.getLogger().setLevel(logging.DEBUG)
@@ -22,9 +24,11 @@ def main():
     # Parse CLI arguments
     parser = argparse.ArgumentParser(description='Gets assignment and submission data with rubric assessments for a given course.')
     parser.add_argument('course_id', type=int, help="The canvas course ID")
+    parser.add_argument('--randomized_students_csv', type=str, help="CSV file that maps students to random numbers", required=False)
     args = parser.parse_args()
 
     course_id = args.course_id
+    randomized_students_csv = args.randomized_students_csv
     base_path = os.path.dirname(__file__)
     cache_json_filename = os.path.join(base_path, "%s.json" % course_id)
 
@@ -44,7 +48,9 @@ def main():
     if data['_cache'] is True:
         save_json(filename=cache_json_filename, data=data)
 
-    logger.info("Total users: %s" % len(data['course_users']))
+    process_data(data, randomized_students_csv)
+
+    logger.info("Total enrollment: %s" % len(data['enrollment']))
     logger.info("Total page views: %s" % len(data['page_views']))
     logger.info("Done.")
 
@@ -52,15 +58,41 @@ def load_data(course_id):
     '''
     Load page views for all users in a course.
     '''
-    course_users = get_students(course_id)
-    user_ids = [user['id'] for user in course_users]
+    enrollment = get_students(course_id)
+    user_ids = [user['id'] for user in enrollment]
+    user_profiles = get_user_profiles(user_ids)
     page_views = get_page_views(course_id, user_ids)
     data = {
-        "course_users": course_users,
-        "course_user_ids": [u['id'] for u in course_users],
+        "enrollment": enrollment,
+        "user_profiles": user_profiles,
         "page_views": page_views,
     }
     return data
+
+def process_data(data, randomized_students_csv):
+    '''
+    Process the data.
+    '''
+    logger.info("Processing data.")
+    randomized_students = get_randomized_students(randomized_students_csv)
+    
+def get_randomized_students(csv_file_name):
+    '''
+    Returns a dictionary mapping a student's huid to a random ID.
+    The random ID is what we'll return to the client, not the HUID to identify students.
+    '''
+    randomized_students = {}
+    with open(csv_file_name, 'rb') as csvfile:
+        csvreader = csv.reader(csvfile)
+        for row in csvreader:
+            random_id = row[0]
+            first_name = row[1]
+            last_name = row[2]
+            huid = row[3]
+            if random_id.isdigit():
+                randomized_students[huid] = random_id
+    logger.debug("Randomized students: number of random_ids=%s mapping=%s" % (len(randomized_students.keys()), randomized_students))
+    return randomized_students
 
 def get_students(course_id):
     '''
@@ -69,8 +101,19 @@ def get_students(course_id):
     in production, we need to do it in TEST and then hit that API endpoint.
     '''
     request_context = RequestContext(OAUTH_TOKEN, TEST_CANVAS_URL, per_page=100)
-    course_users = get_all_list_data(request_context, courses.list_users_in_course_users, course_id, "email", enrollment_type="student")
-    return course_users
+    result = get_all_list_data(request_context, courses.list_users_in_course_users, course_id, "email", enrollment_type="student")
+    return result
+
+def get_user_profiles(user_ids):
+    '''
+    Get the user profiles for each user.
+    '''
+    request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL)
+    user_profiles = []
+    for user_id in user_ids:
+        user_profile = users.get_user_profile(request_context, user_id)
+        user_profiles.append(user_profile.json())
+    return user_profiles
 
 def get_page_views(course_id, user_ids):
     '''
@@ -84,7 +127,10 @@ def get_page_views(course_id, user_ids):
 
     page_views = []
     for user_id in user_ids:
-        results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
+        try:
+            results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
+        except CanvasAPIError as e:
+            logger.error(str(e))
         logger.debug("Page views for user_id=%s results=%s" % (user_id, results))
         if results:
             page_views.extend([r for r in results if r and r.get('url','').startswith(course_url)])
