@@ -188,15 +188,13 @@ def create_page_views_xls(data, anonymized_students):
     wb = xlwt.Workbook(encoding="utf-8")
     ws = wb.add_sheet('Page Views')
     
-    # Create header row
-    header_cols = ['PageView_Id','Request_Date','Request_Url','Interaction_Seconds', 'UserAgent',
-                   'Student_Random_Id','Assignment_Id','Assignment_Name']
+    # Header row
+    header_cols = ['PageView_Id','Student_Random_Id','Assignment_Id','Assignment_Name',
+                   'Request_Date','Request_Url','Interaction_Seconds', 'UserAgent']
     max_col_widths = [len(header) for header in header_cols]
-    for col_idx, header_col in enumerate(header_cols):
-        ws.write(0, col_idx, header_col, bold_style)
-    
-    # Insert data rows
-    row_idx = 1
+
+    # Body Rows
+    row_data = []
     for page_view in page_views:
         request_url = page_view['url']
         if not request_url.startswith(course_url + '/assignments/'):
@@ -231,13 +229,21 @@ def create_page_views_xls(data, anonymized_students):
         if 'Video' not in assignment_name:
             continue
 
-        row_values = (page_view_id, request_date, request_url, interaction_seconds, user_agent, student_random_id, assignment_id, assignment_name)
-        
+        row_values = [page_view_id, student_random_id, assignment_id, assignment_name, request_date, request_url, interaction_seconds, user_agent]
+        row_data.append(row_values)
         for col_idx, value in enumerate(row_values):
-            ws.write(row_idx, col_idx, value)
             if len(str(value)) > max_col_widths[col_idx]:
                 max_col_widths[col_idx] = len(str(value))       
-        row_idx += 1
+
+    # Insert Header Row
+    for col_idx, header_col in enumerate(header_cols):
+        ws.write(0, col_idx, header_col, bold_style)
+
+    # Insert Body Rows
+    sorted_row_data = sorted(row_data, key=lambda r: (r[1], r[2], r[4]))
+    for row_idx, row in enumerate(sorted_row_data):
+        for col_idx, col_value in enumerate(row):
+            ws.write(row_idx+1, col_idx, col_value)
 
     # Adjust column widths
     for col_idx, col_width in enumerate(max_col_widths):
