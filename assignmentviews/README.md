@@ -16,6 +16,12 @@ Update ```settings/secure.py``` with the appropriate values for *OAUTH_TOKEN*, *
 $ python assignmentviews.py [course_id]
 ```
 
+To anonymize the students by assigning random IDs to their HUIDs, create a CSV file with the following columns: ```RandomID,FirstName,LastName,HUID``` and then run the script like this: 
+
+```
+$ python assignmentviews.py [course_id] --anonymize_students_csv [csv_filename]
+```
+
 ### NOTES ###
 
 - In order to get student enrollment, you must unconclude the course in the TEST environment and then query the TEST canvas API.
