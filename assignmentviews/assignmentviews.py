@@ -203,13 +203,20 @@ def create_page_views_xls(data, anonymized_students):
             continue
         if 'links' not in page_view or 'user' not in page_view['links']:
             continue
+    
         user_id = page_view['links']['user']
         if user_id not in huid_of:
             continue
+
         huid = huid_of[user_id]
-        if huid not in anonymized_students:
-            continue
-        student_random_id  = anonymized_students[huid]
+        if anonymized_students is None:
+            student_random_id = huid
+        else:
+            if huid in anonymized_students:
+                student_random_id  = anonymized_students[huid]
+            else:
+                continue
+
         page_view_id = page_view['id']
         request_date = page_view['created_at']
         user_agent = page_view['user_agent']
