@@ -27,10 +27,14 @@ def main():
     parser = argparse.ArgumentParser(description='Gets assignment and submission data with rubric assessments for a given course.')
     parser.add_argument('course_id', type=int, help="The canvas course ID")
     parser.add_argument('--anonymized_students_csv', type=str, help="CSV file that maps student HUID's to random identifiers to anonymize the data", required=False)
+    parser.add_argument('--start_time', type=str, help="Start time ISO 8601 format YYYY-MM-DD.")
+    parser.add_argument('--end_time', type=str, help="End time ISO 8601 format YYYY-MM-DD.")
     args = parser.parse_args()
 
     course_id = args.course_id
     anonymized_students_csv = args.anonymized_students_csv
+    start_time = args.start_time
+    end_time = args.end_time
     base_path = os.path.dirname(__file__)
     cache_json_filename = os.path.join(base_path, "%s.json" % course_id)
 
@@ -43,7 +47,7 @@ def main():
             data['_cache'] = False
     else:
         logger.info("Loading data from %s" % CANVAS_URL)
-        data = load_data(course_id)
+        data = load_data(course_id, start_time=start_time, end_time=end_time)
         data['_cache'] = True
 
     # Save the raw API data (i.e. cache it) since it's expensive to load
@@ -62,7 +66,7 @@ def main():
     logger.info("Total page views: %s" % len(data['page_views']))
     logger.info("Done.")
 
-def load_data(course_id):
+def load_data(course_id, start_time=None, end_time=None):
     '''
     Load page views for all users in a course.
     '''
@@ -70,7 +74,7 @@ def load_data(course_id):
     course_assignments = get_assignments(course_id)
     user_ids = [user['id'] for user in course_enrollment]
     user_profiles = get_user_profiles(user_ids)
-    page_views = get_page_views(course_id, user_ids)
+    page_views = get_page_views(course_id, user_ids, start_time=start_time, end_time=end_time)
     
     data = {
         "course_id": course_id,
@@ -136,19 +140,23 @@ def get_assignments(course_id):
     result = get_all_list_data(request_context, assignments.list_assignments, course_id, '')
     return result
 
-def get_page_views(course_id, user_ids):
+def get_page_views(course_id, user_ids, start_time=None, end_time=None):
     '''
     Get the page views from the PROD environment because the page views aren't
     synced over to the TEST environment.
     '''
     request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL, per_page=100)
     course_url = _get_canvas_course_url(CANVAS_URL, course_id)
-    start_time, end_time = ("2015-01-01", "2015-06-15")
+    date_range = {}
+    if start_time is not None:
+        date_range['start_time'] = start_time
+    if end_time is not None:
+        date_range['end_time'] = end_time
 
     page_views = []
     for user_id in user_ids:
         try:
-            results = get_all_list_data(request_context, users.list_user_page_views, user_id, start_time=start_time, end_time=end_time)
+            results = get_all_list_data(request_context, users.list_user_page_views, user_id, **date_range)
         except CanvasAPIError as e:
             logger.error(str(e))
         logger.debug("Page views for user_id=%s results=%s" % (user_id, results))
