@@ -13,6 +13,12 @@ $ cp settings/secure.py.example settings/secure.py
 Update ```settings/secure.py``` with the appropriate values for *OAUTH_TOKEN*, *CANVAS_URL*, and *TEST_CANVAS_URL*.
 
 ```sh
+$ python assignmentviews.py [course_id]
+```
+
+To anonymize the students by assigning random IDs to their HUIDs, create a CSV file with the following columns: ```RandomID,FirstName,LastName,HUID``` and then run the script like this: 
+
+```
 $ python assignmentviews.py [course_id] --anonymize_students_csv [csv_filename]
 ```
 
