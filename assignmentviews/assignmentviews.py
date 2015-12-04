@@ -189,7 +189,7 @@ def create_page_views_spreadsheet(data, anonymized_students):
     ws = wb.add_sheet('Page Views')
     
     # Create header row
-    header_cols = ['PageViewId','Request_Date','Request_Url','Interaction_Seconds',
+    header_cols = ['PageViewId','Request_Date','Request_Url','Interaction_Seconds', 'UserAgent',
                    'Student_Random_Id','Assignment_Id','Assignment_Name']
     
     for col_idx, header_col in enumerate(header_cols):
@@ -212,6 +212,7 @@ def create_page_views_spreadsheet(data, anonymized_students):
         student_random_id  = anonymized_students[huid]
         page_view_id = page_view['id']
         request_date = page_view['created_at']
+        user_agent = page_view['user_agent']
         interaction_seconds = page_view['interaction_seconds']
         m = assignment_re.search(request_url)
         assignment_id = ''
@@ -223,7 +224,7 @@ def create_page_views_spreadsheet(data, anonymized_students):
         if 'Video' not in assignment_name:
             continue
 
-        row_values = (page_view_id, request_date, request_url, interaction_seconds, student_random_id, assignment_id, assignment_name)
+        row_values = (page_view_id, request_date, request_url, interaction_seconds, user_agent, student_random_id, assignment_id, assignment_name)
         for col_idx, value in enumerate(row_values):
             ws.write(row_idx, col_idx, value)
         row_idx += 1
