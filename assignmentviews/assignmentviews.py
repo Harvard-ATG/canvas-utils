@@ -1,5 +1,5 @@
 from settings.secure import OAUTH_TOKEN, CANVAS_URL, TEST_CANVAS_URL
-from canvas_sdk.methods import courses, users
+from canvas_sdk.methods import courses, users, assignments
 from canvas_sdk.utils import get_all_list_data
 from canvas_sdk.exceptions import CanvasAPIError
 from canvas_sdk import RequestContext
@@ -10,7 +10,9 @@ import json
 import argparse
 import urlparse
 import datetime
+import re
 import csv
+import xlwt
 
 logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
 logging.getLogger().setLevel(logging.DEBUG)
@@ -24,11 +26,11 @@ def main():
     # Parse CLI arguments
     parser = argparse.ArgumentParser(description='Gets assignment and submission data with rubric assessments for a given course.')
     parser.add_argument('course_id', type=int, help="The canvas course ID")
-    parser.add_argument('--randomized_students_csv', type=str, help="CSV file that maps students to random numbers", required=False)
+    parser.add_argument('--anonymized_students_csv', type=str, help="CSV file that maps student HUID's to random identifiers to anonymize the data", required=False)
     args = parser.parse_args()
 
     course_id = args.course_id
-    randomized_students_csv = args.randomized_students_csv
+    anonymized_students_csv = args.anonymized_students_csv
     base_path = os.path.dirname(__file__)
     cache_json_filename = os.path.join(base_path, "%s.json" % course_id)
 
@@ -47,8 +49,14 @@ def main():
     # Save the raw API data (i.e. cache it) since it's expensive to load
     if data['_cache'] is True:
         save_json(filename=cache_json_filename, data=data)
+    
+    # Check if the user provided a CSV file mapping a student's HUID to a random ID
+    anonymized_students = None
+    if anonymized_students_csv:
+        anonymized_students = get_anonymized_students(anonymized_students_csv)
 
-    process_data(data, randomized_students_csv)
+    # Process the data
+    process_data(data, anonymized_students=anonymized_students)
 
     logger.info("Total enrollment: %s" % len(data['enrollment']))
     logger.info("Total page views: %s" % len(data['page_views']))
@@ -58,30 +66,35 @@ def load_data(course_id):
     '''
     Load page views for all users in a course.
     '''
-    enrollment = get_students(course_id)
-    user_ids = [user['id'] for user in enrollment]
+    course_enrollment = get_students(course_id)
+    course_assignments = get_assignments(course_id)
+    user_ids = [user['id'] for user in course_enrollment]
     user_profiles = get_user_profiles(user_ids)
     page_views = get_page_views(course_id, user_ids)
+    
     data = {
-        "enrollment": enrollment,
+        "course_id": course_id,
+        "enrollment": course_enrollment,
+        "assignments": course_assignments,
         "user_profiles": user_profiles,
         "page_views": page_views,
     }
+
     return data
 
-def process_data(data, randomized_students_csv):
+def process_data(data, anonymized_students=None):
     '''
     Process the data.
     '''
     logger.info("Processing data.")
-    randomized_students = get_randomized_students(randomized_students_csv)
+    create_page_views_spreadsheet(data, anonymized_students)
     
-def get_randomized_students(csv_file_name):
+def get_anonymized_students(csv_file_name):
     '''
-    Returns a dictionary mapping a student's huid to a random ID.
-    The random ID is what we'll return to the client, not the HUID to identify students.
+    Returns a dictionary mapping a student's HUID to a random ID.
+    The random ID is going to be used to anonymize the data that is returned to the client.
     '''
-    randomized_students = {}
+    anonymized_students = {}
     with open(csv_file_name, 'rb') as csvfile:
         csvreader = csv.reader(csvfile)
         for row in csvreader:
@@ -90,9 +103,9 @@ def get_randomized_students(csv_file_name):
             last_name = row[2]
             huid = row[3]
             if random_id.isdigit():
-                randomized_students[huid] = random_id
-    logger.debug("Randomized students: number of random_ids=%s mapping=%s" % (len(randomized_students.keys()), randomized_students))
-    return randomized_students
+                anonymized_students[huid] = random_id
+    logger.debug("Randomized students: number of random_ids=%s mapping=%s" % (len(anonymized_students.keys()), anonymized_students))
+    return anonymized_students
 
 def get_students(course_id):
     '''
@@ -115,14 +128,21 @@ def get_user_profiles(user_ids):
         user_profiles.append(user_profile.json())
     return user_profiles
 
+def get_assignments(course_id):
+    '''
+    Returns a list of the assignments for the course.
+    '''
+    request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL, per_page=100)
+    result = get_all_list_data(request_context, assignments.list_assignments, course_id, '')
+    return result
+
 def get_page_views(course_id, user_ids):
     '''
     Get the page views from the PROD environment because the page views aren't
     synced over to the TEST environment.
     '''
     request_context = RequestContext(OAUTH_TOKEN, CANVAS_URL, per_page=100)
-    parsed_url = urlparse.urlparse(CANVAS_URL)
-    course_url = "%s://%s/courses/%s" % (parsed_url.scheme, parsed_url.netloc, course_id)
+    course_url = _get_canvas_course_url(CANVAS_URL, course_id)
     start_time, end_time = ("2015-01-01", "2015-06-15")
 
     page_views = []
@@ -147,6 +167,90 @@ def save_json(filename=None, data=None):
     with open(filename, 'w') as outfile:
         json.dump(data, outfile, sort_keys=True, indent=2, separators=(',', ': '))
 
+def create_page_views_spreadsheet(data, anonymized_students):
+    '''
+    Creates a spreadsheet containing the raw page views data
+    '''
+    logger.info("Creating spreadsheet with page views data")
+    course_id = data['course_id']
+    page_views = data['page_views']
+    filename = "%s-pageviews.xls" % course_id
+    huid_of = _get_huid_of_user_dict(data['user_profiles'])
+    course_url = _get_canvas_course_url(CANVAS_URL, course_id)
+    assignment_url = course_url + '/assignments'
+    assignment_of = _get_assignment_by_id_dict(data['assignments'])
+    assignment_re = re.compile(assignment_url + '/(\d+)')
+    
+    # Formats/Styles
+    bold_style = xlwt.easyxf('font: bold 1')
+    
+    # Create workbook
+    wb = xlwt.Workbook(encoding="utf-8")
+    ws = wb.add_sheet('Page Views')
+    
+    # Create header row
+    header_cols = ['PageViewId','Request_Date','Request_Url','Interaction_Seconds',
+                   'Student_Random_Id','Assignment_Id','Assignment_Name']
+    
+    for col_idx, header_col in enumerate(header_cols):
+        ws.write(0, col_idx, header_col, bold_style)
+    
+    # Insert data rows
+    row_idx = 1
+    for page_view in page_views:
+        request_url = page_view['url']
+        if not request_url.startswith(course_url + '/assignments/'):
+            continue
+        if 'links' not in page_view or 'user' not in page_view['links']:
+            continue
+        user_id = page_view['links']['user']
+        if user_id not in huid_of:
+            continue
+        huid = huid_of[user_id]
+        if huid not in anonymized_students:
+            continue
+        student_random_id  = anonymized_students[huid]
+        page_view_id = page_view['id']
+        request_date = page_view['created_at']
+        interaction_seconds = page_view['interaction_seconds']
+        m = assignment_re.search(request_url)
+        assignment_id = ''
+        assignment_name = ''
+        if m is not None:
+            assignment_id = int(m.group(1))
+            if assignment_id in assignment_of:
+                assignment_name = assignment_of[assignment_id]['name']
+        if 'Video' not in assignment_name:
+            continue
+
+        row_values = (page_view_id, request_date, request_url, interaction_seconds, student_random_id, assignment_id, assignment_name)
+        for col_idx, value in enumerate(row_values):
+            ws.write(row_idx, col_idx, value)
+        row_idx += 1
+    
+    # Save spreadsheet
+    wb.save(filename)
+
+def _get_huid_of_user_dict(user_profiles):
+    '''
+    Returns a mapping of the Canvas user ID to the user's HUID.
+    '''
+    return dict([ (p['id'], p['login_id']) for p in user_profiles ])
+
+def _get_canvas_course_url(canvas_api_url, course_id):
+    '''
+    Returns a course URL like http://canvas.domain/courses/:id
+    based on the canvas API url.
+    '''
+    parsed_url = urlparse.urlparse(canvas_api_url)
+    course_url = "%s://%s/courses/%s" % (parsed_url.scheme, parsed_url.netloc, course_id)
+    return course_url
+
+def _get_assignment_by_id_dict(course_assignments):
+    '''
+    Returns a mapping of course assignment IDs to course assignment objects.
+    '''
+    return dict([ (a['id'], a) for a in course_assignments])
 
 if __name__ == '__main__':
     main()
