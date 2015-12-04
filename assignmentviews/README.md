@@ -13,7 +13,7 @@ $ cp settings/secure.py.example settings/secure.py
 Update ```settings/secure.py``` with the appropriate values for *OAUTH_TOKEN*, *CANVAS_URL*, and *TEST_CANVAS_URL*.
 
 ```sh
-$ python assignmentviews.py [course_id]
+$ python assignmentviews.py [course_id] --anonymize_students_csv [csv_filename]
 ```
 
 ### NOTES ###
