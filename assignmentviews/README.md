@@ -1,6 +1,8 @@
 # README
 
-This script is used to get page view statistics of assignments in a given course.
+This script is used to get page view statistics of assignments of a given course. 
+
+_Note: this script is hard coded to only return statistics on assignments with the word "Video" in the assignment title. Future enhancement: make this filter logic a CLI option._
 
 ### Quickstart ###
 
