@@ -5,3 +5,26 @@ Find due dates for all assignments in the Spring 2015-2016 term:
 ```sh
 $ python find_due_dates.py 39 --enrollment_term_id 39
 ```
+
+### Setup your environment
+
+If you don't already have your environment setup to run these canvas util scripts, here's an overview of what you need to do:
+
+```sh
+$ git clone https://github.com/Harvard-ATG/canvas-utils.git
+$ cd canvas-utils/
+$ virtualenv pyenv
+$ source pyenv/bin/activate
+$ pip install -r requirements.txt
+$ cd find_due_dates/
+$ cp settings/secure.py.example settings/secure.py
+```
+
+After the last step, you should open up `settings/secure.py` and update the values as appropriate. Then you should be ready to run the script:
+
+```sh
+$ python find_due_dates.py
+usage: find_due_dates.py [-h] [--enrollment_term_id ENROLLMENT_TERM_ID]
+                         account_id
+find_due_dates.py: error: too few arguments
+```
