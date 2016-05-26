@@ -5,6 +5,7 @@ from canvas_sdk import RequestContext
 import logging
 import argparse
 import json
+import xlwt
 import os.path
 
 logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
@@ -61,6 +62,46 @@ def load_data():
     
     return data
 
+def save_spreadsheet(filename=None, data=None):
+    if filename is None:
+        raise Exception("Filename is required")
+    if data is None:
+        raise Exception("Data is required")
+
+    courses = data['courses']
+    assignments = data['assignments']
+
+    # Formats/Styles
+    bold_style = xlwt.easyxf('font: bold 1')
+    right_align = xlwt.easyxf("align: horiz right")
+    course_name_fmt = u'{name} ({id})'
+    assignment_name_fmt = u'{name} ({id})'
+    due_at_fmt = u'{due_at}'
+    
+    # Create workbook
+    wb = xlwt.Workbook(encoding="utf-8")
+    ws = wb.add_sheet('Due Dates Sheet', cell_overwrite_ok=True)
+    ws.write(0,0, u'Term'.encode('utf-8'), bold_style)
+    ws.write(0,1, u'Course'.encode('utf-8'), bold_style)
+    ws.write(0,2, u'Assignment'.encode('utf-8'), bold_style)
+    ws.write(0,3, u'Due Date'.encode('utf-8'), bold_style)
+    
+    # Write data to worksheet
+    row = 1
+    for course_idx, course in enumerate(courses):
+        course_id= str(course['id'])
+        course_assignments = assignments[course_id]
+        for assignment_idx, assignment in enumerate(course_assignments):
+            ws.write(row, 0, course['term']['name'])
+            ws.write(row, 1, course_name_fmt.format(**course))
+            ws.write(row, 2, assignment_name_fmt.format(**assignment))
+            ws.write(row, 3, due_at_fmt.format(**assignment))
+            row += 1
+    
+    # Save workbook
+    logger.info("Saving spreadsheet to %s" % filename)
+    wb.save(filename)
+
 def print_statistics(data):
     # Output data
     print "Published course in account %s: %d" % (args.account_id, len(data['courses']))
@@ -72,6 +113,7 @@ def print_statistics(data):
         for assignment in sorted(data['assignments'][course_id], key=lambda a: a['due_at'], reverse=True):
             print "\tDue: %s -- %s" % (assignment['due_at'], assignment['name'])
         
-
-print_statistics(load_data())
+data = load_data()
+print_statistics(data)
+save_spreadsheet(filename='duedates.xls', data=data)
 exit(0)
