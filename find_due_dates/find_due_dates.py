@@ -19,8 +19,6 @@ logger.setLevel(logging.DEBUG)
 parser = argparse.ArgumentParser(description='Find due dates set during a given period.')
 parser.add_argument('account_id', help="Account ID used to find courses")
 parser.add_argument('--enrollment_term_id', help="Enrollment Term ID to filter courses to given term.")
-parser.add_argument('--start_date', help="Start date ISO8601 (YYYY-MM-DD)")
-parser.add_argument('--end_date', help="End date ISO8601 (YYYY-MM-DD)")
 args = parser.parse_args()
 logger.debug("Arguments: %s" % args)
 
