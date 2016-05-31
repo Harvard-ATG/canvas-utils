@@ -1,9 +1,9 @@
 # README
 
-Find due dates for all assignments in the Spring 2015-2016 term:
+Find due dates for all assignments in the Spring 2015-2016 term and then show any courses that have due dates set during reading period (Th. April 28th to Wed. May 4th):
 
 ```sh
-$ python find_due_dates.py 39 --enrollment_term_id 39
+$ python find_due_dates.py 39 --enrollment_term_id 39 --reading_period_start 2016-04-28 --reading_period_end 2016-05-04
 ```
 
 ### Setup your environment
