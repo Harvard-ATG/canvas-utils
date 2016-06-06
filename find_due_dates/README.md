@@ -27,6 +27,8 @@ $ python find_due_dates.py
 usage: find_due_dates.py [-h] [--enrollment_term_id ENROLLMENT_TERM_ID]
                          [--reading_period_start READING_PERIOD_START]
                          [--reading_period_end READING_PERIOD_END]
+                         [--exam_period_start EXAM_PERIOD_START]
+                         [--exam_period_end EXAM_PERIOD_END]
                          account_id
 find_due_dates.py: error: too few arguments
 ```
