@@ -23,8 +23,10 @@ $ cp settings/secure.py.example settings/secure.py
 After the last step, you should open up `settings/secure.py` and update the values as appropriate. Then you should be ready to run the script:
 
 ```sh
-$ python find_due_dates.py
+$ python find_due_dates.py 
 usage: find_due_dates.py [-h] [--enrollment_term_id ENROLLMENT_TERM_ID]
+                         [--reading_period_start READING_PERIOD_START]
+                         [--reading_period_end READING_PERIOD_END]
                          account_id
 find_due_dates.py: error: too few arguments
 ```
